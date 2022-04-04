@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="comment">
+	<select id="commentList" parameterType="com.community.comment.CommentDto" resultType="com.community.comment.CommentDto">
+		select
+			bct.board_comment_idx,
+			bct.board_comment_info_idx,
+			bct.board_comment_content_idx,
+			mt.member_name as board_comment_writer_name,
+			bct.board_comment,
+			to_char(bct.board_comment_date, 'YYYY-MM-DD') as board_comment_date
+		from board_comment_table bct, member_table mt
+		where 
+			bct.board_comment_content_idx = #{board_comment_content_idx}
+			and bct.board_comment_writer_idx = mt.member_idx
+		order by
+			board_comment_idx asc
+	</select>
+</mapper>

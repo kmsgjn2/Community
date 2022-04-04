@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="board">
+	<select id="boardName" parameterType="Integer" resultType="String">
+		select board_name
+		from board_table
+		where board_idx = #{board_idx}
+	</select>
+	<select id="boardCount" parameterType="com.community.paging.BoardPagingVo" resultType="Integer">
+		select count(distinct bct.board_content_idx)
+		from board_content_table bct, member_table mt
+		where bct.board_content_info_idx = #{board_idx}
+		and bct.board_content_writer_idx = mt.member_idx
+		<if test="searchType != null">
+			<trim prefix="and">
+				<if test="searchType == 'title'">
+					bct.board_content_title like '%'||#{searchWord}||'%'
+				</if>
+				<if test="searchType == 'content'">
+					bct.board_content like '%'||#{searchWord}||'%'
+				</if>
+				<if test="searchType == 'writer'">
+					mt.member_name like #{searchWord}
+				</if>
+				<if test="searchType == 'titleContent'">
+					bct.board_content_title like '%'||#{searchWord}||'%'
+					or bct.board_content like '%'||#{searchWord}||'%'
+				</if>
+			</trim>
+		</if>
+	</select>
+	<select id="boardList" parameterType="com.community.paging.BoardPagingVo" resultType="com.community.board.BoardDto">
+		select *
+		from(select rownum rn, a.*
+			 from(select 
+			 		 bct.board_content_idx,
+					 bct.board_content_title,
+					 bct.board_content_file,
+					 bct.board_content,
+					 to_char(bct.board_content_date, 'yyyy-mm-dd') as board_content_date,
+					 mt.MEMBER_NAME as board_content_writer_name 
+			 	  from board_content_table bct, member_table mt
+			 	  where bct.board_content_writer_idx = mt.member_idx
+			 	  and bct.board_content_info_idx = #{board_idx}
+			 	  order by bct.board_content_idx desc)a
+			 	  <if test="searchType != null">
+			 	  	<trim prefix="where">
+						<if test="searchType == 'title'">
+							board_content_title like '%'||#{searchWord}||'%'
+						</if>
+						<if test="searchType == 'content'">
+							board_content like '%'||#{searchWord}||'%'
+						</if>
+						<if test="searchType == 'writer'">
+							board_content_writer_name like #{searchWord}
+						</if>
+						<if test="searchType == 'titleContent'">
+							board_content_title like '%'||#{searchWord}||'%'
+							or board_content like '%'||#{searchWord}||'%'
+						</if>
+			 	  	</trim>
+			 	  </if>)
+			 	  where rn between #{pageStart} and #{pageEnd}
+	</select>
+	<insert id="boardWrite" parameterType="com.community.board.BoardDto">
+		<selectKey keyProperty="board_content_idx" order="BEFORE" resultType="Integer">
+			select board_content_seq.nextval from dual
+		</selectKey>
+		insert into board_content_table
+		values(
+		#{board_content_idx},
+		#{board_content_title},
+		#{board_content},
+		#{board_content_file, jdbcType=VARCHAR},
+		#{board_content_writer_idx},
+		#{board_content_info_idx},
+		sysdate
+		)
+	</insert>
+	<select id="boardContent" parameterType="Integer" resultType="com.community.board.BoardDto">
+		select
+			bct.board_content_idx,
+			bct.board_content_title,
+			bct.board_content,
+			bct.board_content_file,
+			to_char(bct.board_content_date, 'yyyy-mm-dd') as board_content_date,
+			mt.member_name as board_content_writer_name,
+			bct.board_content_writer_idx
+		from board_content_table bct, member_table mt
+		where bct.board_content_writer_idx = mt.member_idx
+		and bct.board_content_idx = #{board_content_idx}
+	</select>
+	<update id="boardModify" parameterType="com.community.board.BoardDto">
+		update board_content_table
+		set
+		board_content_title = #{board_content_title},
+		board_content = #{board_content},
+		board_content_file = #{board_content_file, jdbcType=VARCHAR}
+		where board_content_idx = #{board_content_idx}
+	</update>
+	<delete id="boardDelete" parameterType="Integer">
+		delete
+		from board_content_table
+		where board_content_idx = #{board_content_idx}
+	</delete>
+</mapper>
